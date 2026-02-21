@@ -57,7 +57,7 @@ export class AuthServices {
         const rqBody = apiLambda ? f : body;
         return new Promise((resolve, reject) => {
             axios.post(urlRq, rqBody, {
-                headers: headers
+                headers: headers,
             }).then((response: any) => {
                 resolve({
                     data: response.data,

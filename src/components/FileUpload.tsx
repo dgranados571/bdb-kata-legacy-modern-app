@@ -8,41 +8,76 @@ export const FileUpload = () => {
     const [error, setError] = useState<string | null>(null);
     const [generatedKey, setGeneratedKey] = useState<string | null>(null);
 
+    const [appName, setAppName] = useState('');
+    const [definitionTemplate, setDefinitionTemplate] = useState('DEFAUT_COBOL_TEMPLATE');
+    const [modSuccess, setModSuccess] = useState(false);
+    const [pipelineLogs, setPipelineLogs] = useState<string[]>([]);
+
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const selectedFile = e.target.files[0];
             setFile(selectedFile);
             setError(null);
-            const key = `apps_modern/${selectedFile.name}`;
+            setModSuccess(false);
+            setPipelineLogs([]);
+            const key = `LEGACY_CODE/${selectedFile.name}`;
             setGeneratedKey(key);
+            if (!appName) {
+                setAppName(selectedFile.name.split('.')[0]);
+            }
         }
     };
 
-    const getPresignedUrl = async () => {
+    const startModernization = async () => {
         if (!file || !generatedKey) return;
         setLoading(true);
         setError(null);
+        setModSuccess(false);
+        setPipelineLogs([]);
+
         try {
             const authServices = new AuthServices();
+
             const response = await authServices.requestGet({ key: generatedKey }, 1);
-            console.log('Response', response);
-            const response2 = await authServices.requestPutFileUrlPresigned(file, response.data);
-            console.log('Response2', response2);
+            if (response.error) throw response.error;
+
+            await authServices.requestPutFileUrlPresigned(file, response.data);
+
+            const body = {
+                cobolPath: generatedKey,
+                appName: appName,
+                definitionTemplate: definitionTemplate
+            }
+            const modResponse = await authServices.requestPost(body, 2);
+
+            if (modResponse.error) throw modResponse.error;
+
+            setModSuccess(true);
+            setPipelineLogs(modResponse.data || []);
+            console.log('Modernization started successfully:', modResponse.data);
+
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error al obtener la URL prefirmada');
-            console.error('Fetch error:', err);
+            setError(err instanceof Error ? err.message : 'Error en el proceso de modernización');
+            console.error('Modernization flow error:', err);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="upload-card">
+        <div className="upload-card" style={{ maxWidth: pipelineLogs.length > 0 ? '800px' : '500px' }}>
             <div className="status-badge">AWS Modernization Stack</div>
-            <h2>Subir Archivo Legacy</h2>
+            <h2>Modernización de Código</h2>
             <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>
-                Selecciona un archivo COBOL u otro recurso para iniciar el proceso.
+                Carga tu archivo legacy para iniciar la transformación a la nube.
             </p>
+            <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+                <label className="result-label">Nombre de Aplicación</label>
+                <input type="text" className="input-modern" value={appName} onChange={(e) => setAppName(e.target.value)} placeholder="Ej: ProcesoDescuentos" style={{ width: '100%', marginBottom: '1rem', padding: '0.8rem', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }} />
+
+                <label className="result-label">Plantilla de Definición</label>
+                <textarea className="input-modern" value={definitionTemplate} onChange={(e) => setDefinitionTemplate(e.target.value)} style={{ width: '100%', minHeight: '80px', padding: '0.8rem', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }} />
+            </div>
 
             <div className="file-input-wrapper">
                 <label htmlFor="file-upload" className="file-input-label">
@@ -54,36 +89,47 @@ export const FileUpload = () => {
                         </svg>
                     </div>
                     <span style={{ fontWeight: 500 }}>
-                        {file ? file.name : 'Haz clic para seleccionar un archivo'}
+                        {file ? file.name : 'Seleccionar Archivo .cbl'}
                     </span>
-                    {file && (
-                        <span style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem' }}>
-                            {(file.size / 1024).toFixed(2)} KB
-                        </span>
-                    )}
                 </label>
-                <input
-                    id="file-upload"
-                    type="file"
-                    onChange={handleFileChange}
-                />
+                <input id="file-upload" type="file" onChange={handleFileChange} />
             </div>
 
-            <button className="button-modern" onClick={getPresignedUrl} disabled={!file || loading}>
+            <button className="button-modern" onClick={startModernization} disabled={!file || !appName || loading}>
                 {loading ? (
                     <>
                         <span className="spinner"></span>
-                        Obteniendo URL...
+                        Procesando...
                     </>
                 ) : (
-                    'Obtener URL Prefirmada'
+                    'Iniciar Modernización'
                 )}
             </button>
 
-            {generatedKey && (
-                <div className="result-area">
-                    <span className="result-label">Generated S3 Key</span>
-                    <div className="result-content">{generatedKey}</div>
+            {pipelineLogs.length > 0 && (
+                <div className="terminal-window">
+                    <div className="terminal-header">
+                        <div className="terminal-dot" style={{ background: '#ff5f56' }}></div>
+                        <div className="terminal-dot" style={{ background: '#ffbd2e' }}></div>
+                        <div className="terminal-dot" style={{ background: '#27c93f' }}></div>
+                        <span style={{ marginLeft: '1rem', fontSize: '0.75rem', color: '#94a3b8' }}>modernization-logs.out</span>
+                    </div>
+                    <div className="terminal-body">
+                        {pipelineLogs.map((log, index) => (
+                            <div key={index} className="terminal-line">
+                                {log}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {modSuccess && (
+                <div className="result-area" style={{ borderColor: '#22c55e', marginTop: '1rem' }}>
+                    <span className="result-label" style={{ color: '#22c55e' }}>¡Éxito!</span>
+                    <div className="result-content" style={{ color: 'white' }}>
+                        Transformación finalizada correctamente.
+                    </div>
                 </div>
             )}
 

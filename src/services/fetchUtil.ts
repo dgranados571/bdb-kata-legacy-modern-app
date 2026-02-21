@@ -21,6 +21,12 @@ export const fetchUtil = () => {
             urlEntornoLambda,
             pathLambda: '/api/modernization/aws/presigned-url',
             urlDominioServidor
+        },
+        2: {
+            urlEntornoLocal,
+            urlEntornoLambda,
+            pathLambda: '/api/modernization/full-pipeline',
+            urlDominioServidor
         }
     }
 
