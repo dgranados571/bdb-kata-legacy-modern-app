@@ -27,7 +27,14 @@ export const fetchUtil = () => {
             urlEntornoLambda,
             pathLambda: '/api/modernization/full-pipeline',
             urlDominioServidor
+        },
+        3: {
+            urlEntornoLocal,
+            urlEntornoLambda,
+            pathLambda: '/api/modernization/execute-application',
+            urlDominioServidor
         }
+
     }
 
     return {
