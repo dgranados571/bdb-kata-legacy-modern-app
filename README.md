@@ -111,7 +111,7 @@ Para el motor planteado en este proyecto, cuando encuentra algo que sabe traduci
 
 | Capa | Servicio AWS | Beneficio |
 |---|---|---|
-| **Frontend** | AWS Amplify | Distribución global, HTTPS automático, CI/CD integrado |
+| **Frontend** | AWS Amplify (React) | Distribución global, HTTPS automático, CI/CD integrado |
 | **Backend API** | AWS EC2 (Spring Boot) | Escalado, aislamiento, sin riesgo de ejecutar código arbitrario en el API |
 | **Ejecución** | AWS Lambda | Aislamiento, seguridad, pago por uso, fácil escalado |
 | **Almacenamiento** | AWS S3 | Versionado, cifrado en reposo (SSE-S3/KMS), control con IAM |
